@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MapPin, Navigation, Info, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -27,6 +27,12 @@ const RealLocationPicker = dynamic(
 
 export default function LocationPicker({ initialLocation, onLocationSelect, label = 'Select Location' }: LocationPickerProps) {
     const [selectedLoc, setSelectedLoc] = useState<Location | null>(initialLocation || null);
+
+    useEffect(() => {
+        if (initialLocation) {
+            setSelectedLoc(initialLocation);
+        }
+    }, [initialLocation]);
 
     return (
         <div className="space-y-4">

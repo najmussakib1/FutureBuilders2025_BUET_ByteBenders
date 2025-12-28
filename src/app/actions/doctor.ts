@@ -1,6 +1,7 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
+import { revalidatePath } from 'next/cache';
 
 export async function getDoctorAlerts(doctorId: string) {
     try {
@@ -41,6 +42,10 @@ export async function updateDoctorLocation(doctorId: string, lat: number, lng: n
             where: { id: doctorId },
             data: { lat, lng }
         });
+
+        revalidatePath('/doctor/profile');
+        revalidatePath('/doctor/dashboard');
+
         return { success: true };
     } catch (error) {
         console.error('Error updating doctor location:', error);

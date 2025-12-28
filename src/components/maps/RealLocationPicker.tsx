@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -20,9 +20,14 @@ interface RealLocationPickerProps {
 }
 
 function LocationMarker({ initialLocation, onLocationSelect }: RealLocationPickerProps) {
-    const [position, setPosition] = useState<L.LatLng | null>(
-        initialLocation ? L.latLng(initialLocation.lat, initialLocation.lng) : null
-    );
+    const [position, setPosition] = useState<L.LatLng | null>(null);
+
+    // Update position when initialLocation changes
+    useEffect(() => {
+        if (initialLocation) {
+            setPosition(L.latLng(initialLocation.lat, initialLocation.lng));
+        }
+    }, [initialLocation]);
 
     const map = useMapEvents({
         click(e) {

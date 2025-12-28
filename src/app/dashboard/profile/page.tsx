@@ -27,6 +27,7 @@ export default function WorkerProfilePage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [selectedLoc, setSelectedLoc] = useState<{ lat: number, lng: number } | null>(null);
+    const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
     useEffect(() => {
         if (status === 'unauthenticated') {
@@ -53,12 +54,17 @@ export default function WorkerProfilePage() {
     const handleLocationSave = async () => {
         if (!selectedLoc || !session?.user?.id) return;
         setSaving(true);
+        setStatusMsg(null);
+
         const result = await updateWorkerLocation(session.user.id, selectedLoc.lat, selectedLoc.lng);
         setSaving(false);
+
         if (result.success) {
-            window.alert('Base location updated successfully!');
+            setStatusMsg({ type: 'success', text: 'Base location updated successfully!' });
+            // Auto-hide after 3 seconds
+            setTimeout(() => setStatusMsg(null), 3000);
         } else {
-            window.alert('Failed to update location');
+            setStatusMsg({ type: 'error', text: result.error || 'Failed to update location' });
         }
     };
 
@@ -148,6 +154,19 @@ export default function WorkerProfilePage() {
                                         )}
                                     </button>
                                 </div>
+
+                                {statusMsg && (
+                                    <motion.div
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: 'auto' }}
+                                        className={`mb-6 p-4 rounded-xl text-sm font-medium ${statusMsg.type === 'success'
+                                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                                                : 'bg-rose-50 text-rose-700 border border-rose-100'
+                                            }`}
+                                    >
+                                        {statusMsg.text}
+                                    </motion.div>
+                                )}
 
                                 <p className="text-sm text-slate-500 mb-6 leading-relaxed">
                                     Setting your base location helps doctors find you and your patients quickly during emergencies.
