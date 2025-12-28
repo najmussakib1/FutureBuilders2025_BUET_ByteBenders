@@ -1,3 +1,5 @@
+[![Watch on YouTube](https://img.youtube.com/vi/OTKaebtMpnc/0.jpg)](https://www.youtube.com/watch?v=OTKaebtMpnc)
+
 # 🏥 Rural Healthcare AI Platform
 
 An intelligent, AI-powered healthcare management system designed to empower community health workers in rural and underserved areas with real-time medical support, smart emergency coordination, and automated patient care.
