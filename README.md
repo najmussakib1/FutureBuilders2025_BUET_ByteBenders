@@ -1,4 +1,4 @@
-# Watch on youtube!! (click abouve thumbnail)
+# Watch on youtube!! (click below thumbnail)
 [![Watch on YouTube](https://img.youtube.com/vi/OTKaebtMpnc/0.jpg)](https://www.youtube.com/watch?v=OTKaebtMpnc)
 
 # 🏥 Rural Healthcare AI Platform
