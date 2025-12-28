@@ -1,3 +1,5 @@
+export const runtime = 'nodejs'
+// ...existing code...
 import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { db } from '@/lib/prisma';

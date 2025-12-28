@@ -1,4 +1,7 @@
 // Cache bust: 2025-12-28T13:10:00
+if (typeof window !== 'undefined') {
+  throw new Error('prisma must only be imported on the server')
+}
 import { PrismaClient } from '../generated/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { Pool } from 'pg'
@@ -17,3 +20,6 @@ if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = db
   globalForPrisma.pool = pool
 }
+
+// Provide `prisma` named export for scripts that import `{ prisma }`
+export const prisma = db
