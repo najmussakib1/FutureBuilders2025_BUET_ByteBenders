@@ -13,6 +13,7 @@ import { dispatchAmbulance } from '@/app/actions/ambulance';
 import { Truck, MapPin as MapPinIcon, Navigation, Info } from 'lucide-react';
 import { updateDoctorLocation } from '@/app/actions/doctor';
 import LocationPicker from '@/components/alert/LocationPicker';
+import MapLoader from '@/components/maps/MapLoader';
 
 export default function DoctorAlertPage({ params }: { params: Promise<{ id: string }> }) {
     const [id, setId] = useState<string>('');
@@ -242,6 +243,46 @@ export default function DoctorAlertPage({ params }: { params: Promise<{ id: stri
                                 <p>Loading AI Analysis...</p>
                             </div>
                         )}
+                    </motion.div>
+
+                    {/* Interactive Case Map */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.25 }}
+                        className="glass-panel p-1 h-[400px] border border-slate-200 shadow-xl relative overflow-hidden"
+                    >
+                        <MapLoader
+                            center={{
+                                lat: medicalAlert.patient.lat || 23.8103,
+                                lng: medicalAlert.patient.lng || 90.4125
+                            }}
+                            markers={[
+                                {
+                                    lat: medicalAlert.patient.lat || 23.8103,
+                                    lng: medicalAlert.patient.lng || 90.4125,
+                                    name: medicalAlert.patient.name,
+                                    type: 'PATIENT'
+                                },
+                                {
+                                    lat: (session?.user as any)?.lat || 23.82,
+                                    lng: (session?.user as any)?.lng || 90.42,
+                                    name: 'You (Doctor)',
+                                    type: 'DOCTOR'
+                                },
+                                medicalAlert.riskAssessment?.emergencyResponse?.ambulance ?
+                                    {
+                                        lat: (medicalAlert.riskAssessment.emergencyResponse.ambulance as any).lat || 23.8,
+                                        lng: (medicalAlert.riskAssessment.emergencyResponse.ambulance as any).lng || 90.4,
+                                        name: 'Ambulance',
+                                        type: 'AMBULANCE'
+                                    } : null
+                            ].filter(Boolean)}
+                            routingTo={
+                                medicalAlert.riskAssessment?.emergencyResponse?.ambulance ?
+                                    { lat: medicalAlert.patient.lat, lng: medicalAlert.patient.lng } : undefined
+                            }
+                        />
                     </motion.div>
 
                     {/* Diagnosis / Resolution Card */}

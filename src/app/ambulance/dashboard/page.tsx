@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { getAmbulanceTasks, updateTaskStatus, getAmbulanceHistory, updateAmbulanceLocation } from '@/app/actions/ambulance';
 import { motion, AnimatePresence } from 'framer-motion';
-import MockMap from '@/components/alert/MockMap';
+import MapLoader from '@/components/maps/MapLoader';
 import { signOut } from 'next-auth/react';
 
 export default function AmbulanceDashboard() {
@@ -243,11 +243,13 @@ export default function AmbulanceDashboard() {
                                 </div>
 
                                 <div className="bg-slate-900 rounded-[2.5rem] p-1 h-[280px] border border-slate-800 shadow-2xl relative overflow-hidden">
-                                    <MockMap
+                                    <MapLoader
                                         center={{ lat: task.assessment.alert.patient.lat || 23.8103, lng: task.assessment.alert.patient.lng || 90.4125 }}
                                         markers={[
-                                            { lat: task.assessment.alert.patient.lat || 23.8103, lng: task.assessment.alert.patient.lng || 90.4125, name: task.assessment.alert.patient.name, type: 'PATIENT' }
+                                            { lat: task.assessment.alert.patient.lat || 23.8103, lng: task.assessment.alert.patient.lng || 90.4125, name: task.assessment.alert.patient.name, type: 'PATIENT' },
+                                            { lat: (session?.user as any)?.lat || 23.81, lng: (session?.user as any)?.lng || 90.41, name: 'You', type: 'AMBULANCE' }
                                         ]}
+                                        routingTo={{ lat: task.assessment.alert.patient.lat, lng: task.assessment.alert.patient.lng }}
                                     />
                                     <div className="absolute bottom-6 right-6 z-10">
                                         <button className="w-14 h-14 bg-indigo-600 rounded-[1.25rem] flex items-center justify-center shadow-2xl shadow-indigo-600/40 active:scale-95 transition-all ring-4 ring-indigo-600/20">

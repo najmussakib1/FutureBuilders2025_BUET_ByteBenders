@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import DoctorSidebar from '@/components/layout/DoctorSidebar';
-import MockMap from '@/components/alert/MockMap';
+import MapLoader from '@/components/maps/MapLoader';
 import { motion } from 'framer-motion';
 import { getDoctorData } from '@/app/actions/doctor';
 import { getDoctorAlerts } from '@/app/actions/alert';
@@ -282,7 +282,7 @@ export default function DoctorDashboard() {
                                         </h3>
                                     </div>
                                 </div>
-                                <MockMap
+                                <MapLoader
                                     center={doctor ? { lat: doctor.lat || 23.8103, lng: doctor.lng || 90.4125 } : { lat: 23.8103, lng: 90.4125 }}
                                     markers={[
                                         ...(doctor ? [{ lat: doctor.lat || 23.8103, lng: doctor.lng || 90.4125, name: 'You', type: 'DOCTOR' as const }] : []),
