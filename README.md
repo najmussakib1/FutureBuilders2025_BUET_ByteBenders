@@ -9,7 +9,7 @@ An intelligent, AI-powered healthcare management system designed to empower comm
 - **Automated Medical Records**: AI-generated patient history and treatment summaries on case resolution
 - **Smart Triage**: Automatic classification of cases as LOW, MEDIUM, or HIGH risk
 
-### 🚑 Smart Emergency Response
+### 🚑 AI powered Smart Emergency Response
 - **Multi-Segment Ambulance Routing**: Real-time GPS tracking with Ambulance → Patient → Doctor routing
 - **Proximity-Based Assignment**: Automatically dispatches nearest available ambulance to doctor's location
 - **Live Status Updates**: Driver notes and real-time status visible to all stakeholders
@@ -29,6 +29,11 @@ An intelligent, AI-powered healthcare management system designed to empower comm
 - **Quick Search**: Find patients by ID, name, or phone number
 - **Medical History**: Complete record of diagnoses, treatments, and notes
 - **Smart Registration**: "Add New Patient" shortcut directly from search results
+
+### 🔍 AI routing agent
+- **Fastest routing**: Fastest routing for ambulance support using AI
+- **Dynamic location updates**: Updates on digital location tracker
+
 
 ## 🚀 Getting Started
 
