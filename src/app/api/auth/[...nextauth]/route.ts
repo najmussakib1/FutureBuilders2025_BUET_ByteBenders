@@ -1,6 +1,6 @@
 import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 
 export const authOptions = {
@@ -17,7 +17,7 @@ export const authOptions = {
                 }
 
                 // 1. Try to find a Community Worker
-                const worker = await prisma.communityWorker.findUnique({
+                const worker = await db.communityWorker.findUnique({
                     where: { email: credentials.email },
                 });
 
@@ -37,7 +37,7 @@ export const authOptions = {
                 }
 
                 // 2. Try to find a Doctor
-                const doctor = await prisma.doctor.findUnique({
+                const doctor = await db.doctor.findUnique({
                     where: { email: credentials.email },
                 });
 
@@ -57,7 +57,7 @@ export const authOptions = {
                 }
 
                 // 3. Try to find an Ambulance Driver
-                const ambulance = await prisma.ambulance.findUnique({
+                const ambulance = await db.ambulance.findUnique({
                     where: { email: credentials.email },
                 });
 

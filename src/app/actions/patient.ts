@@ -1,11 +1,11 @@
 'use server';
 
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 
 export async function searchPatients(query: string, workerId: string) {
     try {
-        const patients = await prisma.patient.findMany({
+        const patients = await db.patient.findMany({
             where: {
                 workerId,
                 OR: [
@@ -36,7 +36,7 @@ export async function searchPatients(query: string, workerId: string) {
 
 export async function getPatientById(patientId: string) {
     try {
-        const patient = await prisma.patient.findUnique({
+        const patient = await db.patient.findUnique({
             where: { id: patientId },
             include: {
                 worker: {
@@ -94,10 +94,10 @@ export async function createPatient(data: {
 }) {
     try {
         // Generate patient ID
-        const count = await prisma.patient.count();
+        const count = await db.patient.count();
         const patientId = `P-${String(count + 1).padStart(4, '0')}`;
 
-        const patient = await prisma.patient.create({
+        const patient = await db.patient.create({
             data: {
                 patientId,
                 name: data.name,
@@ -132,7 +132,7 @@ export async function addMedicalRecord(data: {
     notes?: string;
 }) {
     try {
-        const record = await prisma.medicalRecord.create({
+        const record = await db.medicalRecord.create({
             data: {
                 patientId: data.patientId,
                 diagnosis: data.diagnosis,

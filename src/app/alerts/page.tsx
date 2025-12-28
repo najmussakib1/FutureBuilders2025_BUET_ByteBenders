@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
 import { authOptions } from '../api/auth/[...nextauth]/route';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/prisma';
 import { AlertCircle, CheckCircle, Clock, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 
@@ -9,7 +9,7 @@ export default async function AlertsPage() {
     const session = await getServerSession(authOptions);
     if (!session?.user) redirect('/');
 
-    const worker = await prisma.communityWorker.findUnique({
+    const worker = await db.communityWorker.findUnique({
         where: { email: session.user.email! },
         include: {
             medicalAlerts: {

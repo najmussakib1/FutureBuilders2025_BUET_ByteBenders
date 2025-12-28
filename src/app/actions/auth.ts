@@ -1,6 +1,6 @@
 'use server';
 
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 
 export async function registerWorker(data: {
@@ -13,7 +13,7 @@ export async function registerWorker(data: {
 }) {
     try {
         // Check if email already exists
-        const existing = await prisma.communityWorker.findUnique({
+        const existing = await db.communityWorker.findUnique({
             where: { email: data.email },
         });
 
@@ -25,7 +25,7 @@ export async function registerWorker(data: {
         const hashedPassword = await bcrypt.hash(data.password, 10);
 
         // Create worker
-        const worker = await prisma.communityWorker.create({
+        const worker = await db.communityWorker.create({
             data: {
                 email: data.email,
                 name: data.name,

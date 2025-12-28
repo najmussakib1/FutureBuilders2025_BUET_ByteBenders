@@ -27,42 +27,79 @@ interface RealMapProps {
     center: { lat: number; lng: number };
     zoom?: number;
     markers?: MarkerData[];
-    routingTo?: { lat: number; lng: number };
+    waypoints?: { lat: number; lng: number }[];
 }
 
-function Routing({ from, to }: { from: { lat: number, lng: number }, to: { lat: number, lng: number } }) {
+function Routing({ points }: { points: { lat: number, lng: number }[] }) {
     const map = useMap();
 
     useEffect(() => {
-        if (!map || !from || !to) return;
+        if (!map || !points || points.length < 2) return;
 
         // @ts-ignore
         const routingControl = (L as any).Routing.control({
-            waypoints: [
-                L.latLng(from.lat, from.lng),
-                L.latLng(to.lat, to.lng)
-            ],
+            waypoints: points.map(p => L.latLng(p.lat, p.lng)),
             lineOptions: {
-                styles: [{ color: '#6366f1', weight: 4 }]
+                styles: [
+                    { color: '#6366f1', weight: 6, opacity: 0.7 },
+                    { color: 'white', weight: 2, opacity: 1 }
+                ]
             } as any,
             show: false,
             addWaypoints: false,
             routeWhileDragging: false,
             draggableWaypoints: false,
-            fitSelectedRoutes: true
+            fitSelectedRoutes: true,
+            createMarker: () => null // Don't create extra markers, we have our own
         }).addTo(map);
 
         return () => {
             map.removeControl(routingControl);
         };
-    }, [map, from.lat, from.lng, to.lat, to.lng]);
+    }, [map, JSON.stringify(points)]);
 
     return null;
 }
 
-export default function RealMap({ center, zoom = 13, markers = [], routingTo }: RealMapProps) {
-    const ambulanceMarker = markers.find(m => m.type === 'AMBULANCE');
+// Custom Icons
+const createCustomIcon = (color: string, type: string) => {
+    return L.divIcon({
+        className: 'custom-div-icon',
+        html: `
+            <div style="
+                background-color: ${color};
+                width: 32px;
+                height: 32px;
+                border: 3px solid white;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 0 15px ${color}88;
+                ${type === 'AMBULANCE' ? 'animation: pulse 2s infinite;' : ''}
+            ">
+                <div style="width: 8px; height: 8px; background: white; border-radius: 50%;"></div>
+            </div>
+            <style>
+                @keyframes pulse {
+                    0% { transform: scale(1); box-shadow: 0 0 0 0 ${color}88; }
+                    70% { transform: scale(1.1); box-shadow: 0 0 0 10px ${color}00; }
+                    100% { transform: scale(1); box-shadow: 0 0 0 0 ${color}00; }
+                }
+            </style>
+        `,
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
+    });
+};
 
+const icons = {
+    AMBULANCE: createCustomIcon('#ef4444', 'AMBULANCE'), // Red
+    DOCTOR: createCustomIcon('#3b82f6', 'DOCTOR'),       // Blue
+    PATIENT: createCustomIcon('#10b981', 'PATIENT'),     // Green
+};
+
+export default function RealMap({ center, zoom = 13, markers = [], waypoints }: RealMapProps) {
     return (
         <MapContainer
             center={[center.lat, center.lng]}
@@ -75,7 +112,11 @@ export default function RealMap({ center, zoom = 13, markers = [], routingTo }: 
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             {markers.map((marker, idx) => (
-                <Marker key={idx} position={[marker.lat, marker.lng]}>
+                <Marker
+                    key={idx}
+                    position={[marker.lat, marker.lng]}
+                    icon={icons[marker.type] || icons.PATIENT}
+                >
                     <Popup>
                         <div className="text-xs font-bold font-sans">
                             <p className="text-indigo-600 uppercase tracking-wider text-[10px]">{marker.type}</p>
@@ -84,8 +125,8 @@ export default function RealMap({ center, zoom = 13, markers = [], routingTo }: 
                     </Popup>
                 </Marker>
             ))}
-            {ambulanceMarker && routingTo && (
-                <Routing from={ambulanceMarker} to={routingTo} />
+            {waypoints && waypoints.length >= 2 && (
+                <Routing points={waypoints} />
             )}
         </MapContainer>
     );

@@ -1,6 +1,6 @@
 'use server';
 
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { Assessment } from '@/lib/ai/types';
 
@@ -13,7 +13,7 @@ export async function createAlert(data: {
     description?: string;
 }) {
     try {
-        const alert = await prisma.medicalAlert.create({
+        const alert = await db.medicalAlert.create({
             data: {
                 patientId: data.patientId,
                 workerId: data.workerId,
@@ -45,7 +45,7 @@ export async function createAlert(data: {
 async function generateRiskAssessment(alertId: string, data: any) {
     // Placeholder for AI Logic - can be connected to Groq later if needed immediately
     // For now, we create a dummy assessment to unblock the UI flow
-    await prisma.riskAssessment.create({
+    await db.riskAssessment.create({
         data: {
             alertId,
             riskLevel: data.severity === 'SEVERE' ? 'HIGH' : 'MEDIUM',
@@ -59,7 +59,7 @@ async function generateRiskAssessment(alertId: string, data: any) {
 
 export async function getAlertWithAssessment(alertId: string) {
     try {
-        const alert = await prisma.medicalAlert.findUnique({
+        const alert = await db.medicalAlert.findUnique({
             where: { id: alertId },
             include: {
                 patient: true,
@@ -97,7 +97,7 @@ export async function getAlertWithAssessment(alertId: string) {
 async function autoAssignDoctor(alertId: string, workerId: string) {
     try {
         // 1. Get worker's assigned area
-        const worker = await prisma.communityWorker.findUnique({
+        const worker = await db.communityWorker.findUnique({
             where: { id: workerId },
             select: { assignedArea: true }
         });
@@ -105,7 +105,7 @@ async function autoAssignDoctor(alertId: string, workerId: string) {
         if (!worker) return null;
 
         // 2. Find best available doctor in the same area
-        let doctor = await prisma.doctor.findFirst({
+        let doctor = await db.doctor.findFirst({
             where: {
                 available: true,
                 area: worker.assignedArea,
@@ -116,7 +116,7 @@ async function autoAssignDoctor(alertId: string, workerId: string) {
 
         // 3. Fallback: Find any available doctor
         if (!doctor) {
-            doctor = await prisma.doctor.findFirst({
+            doctor = await db.doctor.findFirst({
                 where: {
                     available: true,
                     status: 'ACTIVE'
@@ -126,7 +126,7 @@ async function autoAssignDoctor(alertId: string, workerId: string) {
         }
 
         if (doctor) {
-            await prisma.medicalAlert.update({
+            await db.medicalAlert.update({
                 where: { id: alertId },
                 data: {
                     doctorId: doctor.id,
@@ -144,12 +144,12 @@ async function autoAssignDoctor(alertId: string, workerId: string) {
 
 export async function submitPrimaryTreatment(alertId: string, treatment: string) {
     try {
-        const currentAlert = await prisma.medicalAlert.findUnique({
+        const currentAlert = await db.medicalAlert.findUnique({
             where: { id: alertId },
             select: { status: true }
         });
 
-        const alert = await prisma.medicalAlert.update({
+        const alert = await db.medicalAlert.update({
             where: { id: alertId },
             data: {
                 primaryTreatment: treatment,
@@ -166,7 +166,7 @@ export async function submitPrimaryTreatment(alertId: string, treatment: string)
 
 export async function escalateToDoctor(alertId: string, doctorId: string) {
     try {
-        const alert = await prisma.medicalAlert.update({
+        const alert = await db.medicalAlert.update({
             where: { id: alertId },
             data: {
                 doctorId: doctorId,
@@ -184,7 +184,7 @@ export async function escalateToDoctor(alertId: string, doctorId: string) {
 export async function getRecommendedDoctors(workerId: string) {
     try {
         // 1. Get the worker's assigned area
-        const worker = await prisma.communityWorker.findUnique({
+        const worker = await db.communityWorker.findUnique({
             where: { id: workerId },
             select: { assignedArea: true }
         });
@@ -192,7 +192,7 @@ export async function getRecommendedDoctors(workerId: string) {
         if (!worker) return { success: false, doctors: [] };
 
         // 2. Find doctors in the same area (Priority 1)
-        const areaDoctors = await prisma.doctor.findMany({
+        const areaDoctors = await db.doctor.findMany({
             where: {
                 available: true,
                 area: worker.assignedArea
@@ -202,7 +202,7 @@ export async function getRecommendedDoctors(workerId: string) {
 
         // 3. Find other available doctors (Priority 2)
         // Only if we need more options, or just return them as separate list
-        const otherDoctors = await prisma.doctor.findMany({
+        const otherDoctors = await db.doctor.findMany({
             where: {
                 available: true,
                 area: { not: worker.assignedArea || '' }
@@ -227,7 +227,7 @@ export async function resolveAlert(alertId: string, notes: string, doctorId: str
         console.log('Resolving alert:', { alertId, doctorId });
 
         // 1. Get the alert with its risk assessment ID
-        const alertCheck = await prisma.medicalAlert.findUnique({
+        const alertCheck = await db.medicalAlert.findUnique({
             where: { id: alertId },
             include: { riskAssessment: true }
         });
@@ -235,7 +235,7 @@ export async function resolveAlert(alertId: string, notes: string, doctorId: str
         if (!alertCheck) return { success: false, error: 'Alert not found' };
 
         // 2. Perform the update
-        await prisma.medicalAlert.update({
+        await db.medicalAlert.update({
             where: { id: alertId },
             data: {
                 status: 'RESOLVED',
@@ -284,7 +284,7 @@ export async function addCaseNote(alertId: string, content: string, type: 'INSTR
             data.workerId = authorId;
         }
 
-        const note = await prisma.caseNote.create({
+        const note = await db.caseNote.create({
             data,
             include: {
                 worker: true,
@@ -303,7 +303,7 @@ export async function addCaseNote(alertId: string, content: string, type: 'INSTR
 
 export async function getCaseNotes(alertId: string) {
     try {
-        const notes = await prisma.caseNote.findMany({
+        const notes = await db.caseNote.findMany({
             where: { alertId },
             include: {
                 worker: true,
@@ -319,7 +319,7 @@ export async function getCaseNotes(alertId: string) {
 }
 export async function getDoctorAlerts(doctorId: string) {
     try {
-        const alerts = await prisma.medicalAlert.findMany({
+        const alerts = await db.medicalAlert.findMany({
             where: {
                 doctorId: doctorId,
                 status: 'ESCALATED'

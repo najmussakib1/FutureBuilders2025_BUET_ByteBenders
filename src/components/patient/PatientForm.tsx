@@ -26,6 +26,12 @@ export default function NewPatientForm({ workerId }: { workerId: string }) {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!location) {
+            alert('Please select the patient\'s location on the map.');
+            return;
+        }
+
         setLoading(true);
 
         const result = await createPatient({

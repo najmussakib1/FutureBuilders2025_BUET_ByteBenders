@@ -19,30 +19,32 @@ interface RealLocationPickerProps {
     onLocationSelect: (loc: { lat: number; lng: number }) => void;
 }
 
-function LocationMarker({ initialLocation, onLocationSelect }: RealLocationPickerProps) {
-    const [position, setPosition] = useState<L.LatLng | null>(null);
-
-    // Update position when initialLocation changes
-    useEffect(() => {
-        if (initialLocation) {
-            setPosition(L.latLng(initialLocation.lat, initialLocation.lng));
-        }
-    }, [initialLocation]);
-
+function MapEvents({ onLocationSelect, initialLocation }: RealLocationPickerProps) {
     const map = useMapEvents({
         click(e) {
-            setPosition(e.latlng);
             onLocationSelect({ lat: e.latlng.lat, lng: e.latlng.lng });
             map.flyTo(e.latlng, map.getZoom());
         },
     });
 
-    return position === null ? null : (
-        <Marker position={position} />
-    );
+    useEffect(() => {
+        if (initialLocation) {
+            map.flyTo([initialLocation.lat, initialLocation.lng], 15);
+        }
+    }, [initialLocation, map]);
+
+    return null;
 }
 
 export default function RealLocationPicker({ initialLocation, onLocationSelect }: RealLocationPickerProps) {
+    const [position, setPosition] = useState<{ lat: number; lng: number } | null>(initialLocation || null);
+
+    useEffect(() => {
+        if (initialLocation) {
+            setPosition(initialLocation);
+        }
+    }, [initialLocation]);
+
     const center = initialLocation || { lat: 23.8103, lng: 90.4125 };
 
     return (
@@ -56,7 +58,11 @@ export default function RealLocationPicker({ initialLocation, onLocationSelect }
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            <LocationMarker initialLocation={initialLocation} onLocationSelect={onLocationSelect} />
+            {position && <Marker position={[position.lat, position.lng]} />}
+            <MapEvents initialLocation={initialLocation} onLocationSelect={(loc) => {
+                setPosition(loc);
+                onLocationSelect(loc);
+            }} />
         </MapContainer>
     );
 }

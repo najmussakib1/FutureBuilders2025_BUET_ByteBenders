@@ -4,7 +4,12 @@ import dynamic from 'next/dynamic';
 import { useMemo } from 'react';
 
 // Use dynamic import to load RealMap only on the client side
-const MapLoader = (props: any) => {
+const MapLoader = (props: {
+    center: { lat: number; lng: number };
+    zoom?: number;
+    markers?: any[];
+    waypoints?: { lat: number; lng: number }[];
+}) => {
     const RealMap = useMemo(() => dynamic(
         () => import('./RealMap'),
         {

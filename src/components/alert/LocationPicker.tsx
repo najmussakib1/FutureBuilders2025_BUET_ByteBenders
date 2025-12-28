@@ -29,10 +29,43 @@ export default function LocationPicker({ initialLocation, onLocationSelect, labe
     const [selectedLoc, setSelectedLoc] = useState<Location | null>(initialLocation || null);
 
     useEffect(() => {
+        if (!initialLocation && !selectedLoc) {
+            handleDetectLocation();
+        }
+    }, []);
+    const [detecting, setDetecting] = useState(false);
+
+    useEffect(() => {
         if (initialLocation) {
             setSelectedLoc(initialLocation);
         }
     }, [initialLocation]);
+
+    const handleDetectLocation = () => {
+        if (!navigator.geolocation) {
+            alert('Geolocation is not supported by your browser');
+            return;
+        }
+
+        setDetecting(true);
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const newLoc = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                };
+                setSelectedLoc(newLoc);
+                onLocationSelect(newLoc);
+                setDetecting(false);
+            },
+            (error) => {
+                console.error('Geolocation error:', error);
+                setDetecting(false);
+                alert('Failed to get your location. Please ensure location permissions are granted.');
+            },
+            { enableHighAccuracy: true }
+        );
+    };
 
     return (
         <div className="space-y-4">
@@ -41,12 +74,22 @@ export default function LocationPicker({ initialLocation, onLocationSelect, labe
                     <Navigation size={16} className="text-indigo-600" />
                     {label}
                 </label>
-                {selectedLoc && (
-                    <span className="text-[10px] font-mono font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100 flex items-center gap-1">
-                        <Check size={10} />
-                        PINNED
-                    </span>
-                )}
+                <div className="flex items-center gap-3">
+                    {selectedLoc && (
+                        <span className="text-[10px] font-mono font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100 flex items-center gap-1">
+                            <Check size={10} />
+                            PINNED
+                        </span>
+                    )}
+                    <button
+                        onClick={handleDetectLocation}
+                        disabled={detecting}
+                        className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100 transition-colors flex items-center gap-1"
+                    >
+                        <Navigation size={10} className={detecting ? 'animate-spin' : ''} />
+                        {detecting ? 'Detecting...' : 'Detect My Location'}
+                    </button>
+                </div>
             </div>
 
             <div className="relative w-full h-[300px] bg-slate-100 rounded-2xl border-2 border-slate-200 overflow-hidden shadow-inner">

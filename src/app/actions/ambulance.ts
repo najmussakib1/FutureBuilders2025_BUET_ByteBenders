@@ -1,12 +1,12 @@
 'use server';
 
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 
 export async function dispatchAmbulance(alertId: string, doctorId: string) {
     try {
         // 1. Get the alert and its assessment
-        const alert = await prisma.medicalAlert.findUnique({
+        const alert = await db.medicalAlert.findUnique({
             where: { id: alertId },
             include: {
                 riskAssessment: true,
@@ -18,9 +18,14 @@ export async function dispatchAmbulance(alertId: string, doctorId: string) {
             return { success: false, error: 'Alert assessment not found' };
         }
 
-        // 2. Find the nearest available ambulance
-        // In a real app, we'd use GIS queries. Here we use a proximity sort if lat/lng exists.
-        const ambulances = await prisma.ambulance.findMany({
+        // 2. Get the doctor's location
+        const doctor = await db.doctor.findUnique({
+            where: { id: doctorId },
+            select: { lat: true, lng: true }
+        });
+
+        // 3. Find the nearest available ambulance
+        const ambulances = await db.ambulance.findMany({
             where: { available: true }
         });
 
@@ -29,18 +34,17 @@ export async function dispatchAmbulance(alertId: string, doctorId: string) {
         }
 
         let selectedAmbulance = ambulances[0];
-        const p = alert.patient as any;
-        if (p.lat && p.lng) {
-            // Simple Euclidean distance for mock sorting
+        if (doctor?.lat && doctor?.lng) {
+            // Sort available ambulances by distance to DOCTOR
             selectedAmbulance = ambulances.sort((a: any, b: any) => {
-                const distA = Math.sqrt(Math.pow(a.lat! - p.lat!, 2) + Math.pow(a.lng! - p.lng!, 2));
-                const distB = Math.sqrt(Math.pow(b.lat! - p.lat!, 2) + Math.pow(b.lng! - p.lng!, 2));
+                const distA = Math.sqrt(Math.pow((a.lat || 0) - doctor.lat!, 2) + Math.pow((a.lng || 0) - doctor.lng!, 2));
+                const distB = Math.sqrt(Math.pow((b.lat || 0) - doctor.lat!, 2) + Math.pow((b.lng || 0) - doctor.lng!, 2));
                 return distA - distB;
             })[0];
         }
 
         // 3. Create or Update Emergency Response
-        await prisma.emergencyResponse.upsert({
+        await db.emergencyResponse.upsert({
             where: { assessmentId: alert.riskAssessment.id },
             create: {
                 assessmentId: alert.riskAssessment.id,
@@ -60,7 +64,7 @@ export async function dispatchAmbulance(alertId: string, doctorId: string) {
         });
 
         // 4. Update ambulance status
-        await prisma.ambulance.update({
+        await db.ambulance.update({
             where: { id: selectedAmbulance.id },
             data: { available: false }
         });
@@ -83,7 +87,7 @@ export async function dispatchAmbulance(alertId: string, doctorId: string) {
 }
 export async function getAmbulanceTasks(ambulanceId: string) {
     try {
-        const responses = await prisma.emergencyResponse.findMany({
+        const responses = await db.emergencyResponse.findMany({
             where: {
                 ambulanceId: ambulanceId,
                 status: { in: ['INITIATED', 'IN_PROGRESS', 'PICKED_UP'] }
@@ -111,7 +115,7 @@ export async function getAmbulanceTasks(ambulanceId: string) {
 
 export async function getAmbulanceHistory(ambulanceId: string) {
     try {
-        const history = await prisma.emergencyResponse.findMany({
+        const history = await db.emergencyResponse.findMany({
             where: {
                 ambulanceId: ambulanceId,
                 status: 'COMPLETED'
@@ -139,7 +143,7 @@ export async function getAmbulanceHistory(ambulanceId: string) {
 
 export async function updateTaskStatus(responseId: string, status: string, notes?: string) {
     try {
-        const response = await prisma.emergencyResponse.update({
+        const response = await db.emergencyResponse.update({
             where: { id: responseId },
             data: {
                 status: status as any,
@@ -154,7 +158,7 @@ export async function updateTaskStatus(responseId: string, status: string, notes
 
         // If completed, make ambulance available again
         if (status === 'COMPLETED') {
-            await prisma.ambulance.update({
+            await db.ambulance.update({
                 where: { id: response.ambulanceId! },
                 data: { available: true }
             });
@@ -171,7 +175,7 @@ export async function updateTaskStatus(responseId: string, status: string, notes
 
 export async function updateAmbulanceLocation(ambulanceId: string, lat: number, lng: number) {
     try {
-        await (prisma.ambulance as any).update({
+        await (db.ambulance as any).update({
             where: { id: ambulanceId },
             data: { lat, lng }
         });

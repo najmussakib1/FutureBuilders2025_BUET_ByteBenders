@@ -278,9 +278,22 @@ export default function DoctorAlertPage({ params }: { params: Promise<{ id: stri
                                         type: 'AMBULANCE'
                                     } : null
                             ].filter(Boolean)}
-                            routingTo={
+                            waypoints={
                                 medicalAlert.riskAssessment?.emergencyResponse?.ambulance ?
-                                    { lat: medicalAlert.patient.lat, lng: medicalAlert.patient.lng } : undefined
+                                    [
+                                        {
+                                            lat: (medicalAlert.riskAssessment.emergencyResponse.ambulance as any).lat || 23.8,
+                                            lng: (medicalAlert.riskAssessment.emergencyResponse.ambulance as any).lng || 90.4
+                                        },
+                                        {
+                                            lat: medicalAlert.patient.lat || 23.81,
+                                            lng: medicalAlert.patient.lng || 90.41
+                                        },
+                                        {
+                                            lat: (session?.user as any)?.lat || 23.82,
+                                            lng: (session?.user as any)?.lng || 90.42
+                                        }
+                                    ] : undefined
                             }
                         />
                     </motion.div>
@@ -363,7 +376,7 @@ export default function DoctorAlertPage({ params }: { params: Promise<{ id: stri
                                     </div>
                                 )}
 
-                                {medicalAlert.riskAssessment?.emergencyResponse?.ambulanceDispatched && (
+                                {medicalAlert.riskAssessment.emergencyResponse && medicalAlert.riskAssessment.emergencyResponse.ambulanceDispatched ? (
                                     <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200">
                                         <div className="flex items-center gap-4 text-slate-800 mb-4">
                                             <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600">
@@ -394,6 +407,16 @@ export default function DoctorAlertPage({ params }: { params: Promise<{ id: stri
                                                 <p className="font-bold text-slate-800">{medicalAlert.riskAssessment.emergencyResponse.ambulance?.driverPhone}</p>
                                                 <p className="text-sm text-emerald-600 font-medium">Driver Active</p>
                                             </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200 border-dashed flex flex-col items-center justify-center text-center space-y-3">
+                                        <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-slate-400">
+                                            <Truck size={24} />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-slate-700">No Ambulance Dispatched</h4>
+                                            <p className="text-sm text-slate-500 max-w-[250px]">Use the button above to request the nearest available ambulance if required.</p>
                                         </div>
                                     </div>
                                 )}
@@ -428,7 +451,7 @@ export default function DoctorAlertPage({ params }: { params: Promise<{ id: stri
                         </div>
                     </motion.div>
                 </div>
-            </main>
-        </div>
+            </main >
+        </div >
     );
 }

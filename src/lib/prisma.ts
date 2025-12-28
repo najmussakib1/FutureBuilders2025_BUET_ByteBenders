@@ -1,4 +1,5 @@
-import { PrismaClient } from '@prisma/client'
+// Cache bust: 2025-12-28T13:10:00
+import { PrismaClient } from '../generated/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { Pool } from 'pg'
 
@@ -10,9 +11,9 @@ const globalForPrisma = globalThis as unknown as {
 const pool = globalForPrisma.pool ?? new Pool({ connectionString: process.env.DATABASE_URL })
 const adapter = new PrismaPg(pool)
 
-export const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter })
+export const db = globalForPrisma.prisma ?? new PrismaClient({ adapter })
 
 if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma
+  globalForPrisma.prisma = db
   globalForPrisma.pool = pool
 }

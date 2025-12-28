@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
 import { authOptions } from '../api/auth/[...nextauth]/route';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/prisma';
 import {
     Activity,
     ChevronRight,
@@ -24,7 +24,7 @@ export default async function DashboardPage() {
     }
 
     // Get worker data with optimized query
-    const worker = await prisma.communityWorker.findUnique({
+    const worker = await db.communityWorker.findUnique({
         where: { email: session.user.email! },
         include: {
             patients: {
@@ -44,9 +44,9 @@ export default async function DashboardPage() {
 
     // Parallel data fetching for stats
     const [totalPatients, activeAlerts, resolvedToday] = await Promise.all([
-        prisma.patient.count({ where: { workerId: worker.id } }),
-        prisma.medicalAlert.count({ where: { workerId: worker.id, status: { in: ['PENDING', 'ESCALATED'] } } }),
-        prisma.medicalAlert.count({
+        db.patient.count({ where: { workerId: worker.id } }),
+        db.medicalAlert.count({ where: { workerId: worker.id, status: { in: ['PENDING', 'ESCALATED'] } } }),
+        db.medicalAlert.count({
             where: {
                 workerId: worker.id,
                 status: 'RESOLVED',

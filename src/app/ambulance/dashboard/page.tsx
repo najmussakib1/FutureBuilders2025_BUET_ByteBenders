@@ -33,6 +33,7 @@ export default function AmbulanceDashboard() {
     const [searchQuery, setSearchQuery] = useState('');
     const [sharingLocation, setSharingLocation] = useState(false);
     const [lastLocUpdate, setLastLocUpdate] = useState<Date | null>(null);
+    const [driverMessage, setDriverMessage] = useState('');
 
     useEffect(() => {
         if (status === 'unauthenticated') {
@@ -56,20 +57,25 @@ export default function AmbulanceDashboard() {
     }, [sharingLocation, session]);
 
     const updateLocation = async () => {
-        if (!session?.user?.id) return;
+        const userId = session?.user?.id;
+        if (!userId) return;
 
-        // Mock moving location (simulating ambulance in motion)
-        // Center around North District mock coordinates
-        const baseLat = 23.8103;
-        const baseLng = 90.4125;
-        const offset = (Date.now() % 10000) / 100000; // Small oscillation
-
-        const newLat = baseLat + offset;
-        const newLng = baseLng + offset * 0.5;
-
-        const result = await updateAmbulanceLocation(session.user.id, newLat, newLng);
-        if (result.success) {
-            setLastLocUpdate(new Date());
+        if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition(async (position) => {
+                const { latitude, longitude } = position.coords;
+                const result = await updateAmbulanceLocation(userId, latitude, longitude);
+                if (result.success) {
+                    setLastLocUpdate(new Date());
+                }
+            }, (error) => {
+                console.error("Geolocation error:", error);
+                // Fallback to mock for demo fluency if GPS fails
+                const baseLat = 23.8103;
+                const baseLng = 90.4125;
+                const offset = (Date.now() % 10000) / 100000;
+                updateAmbulanceLocation(userId, baseLat + offset, baseLng + offset * 0.5);
+                setLastLocUpdate(new Date());
+            });
         }
     };
 
@@ -87,8 +93,10 @@ export default function AmbulanceDashboard() {
 
     const handleStatusUpdate = async (taskId: string, newStatus: string) => {
         setUpdating(taskId);
-        const result = await updateTaskStatus(taskId, newStatus, `Status updated to ${newStatus} by driver.`);
+        const finalNotes = driverMessage.trim() ? `${driverMessage} (Status: ${newStatus})` : `Status updated to ${newStatus} by driver.`;
+        const result = await updateTaskStatus(taskId, newStatus, finalNotes);
         if (result.success) {
+            setDriverMessage('');
             fetchData();
         } else {
             alert('Failed to update status');
@@ -242,14 +250,29 @@ export default function AmbulanceDashboard() {
                                     </div>
                                 </div>
 
+                                <div className="bg-slate-900 rounded-[2.5rem] p-5 border border-slate-800 space-y-4">
+                                    <h4 className="text-xs font-black uppercase tracking-widest text-slate-500 px-2">Driver Updates</h4>
+                                    <textarea
+                                        value={driverMessage}
+                                        onChange={(e) => setDriverMessage(e.target.value)}
+                                        placeholder="Add a manual update (e.g., 'Traffic heavy', 'Patient stabilized')..."
+                                        className="w-full bg-slate-950/50 border border-slate-800 rounded-3xl p-4 text-sm text-slate-300 placeholder:text-slate-700 focus:ring-2 focus:ring-emerald-500/50 outline-none min-h-[100px] transition-all"
+                                    />
+                                </div>
+
                                 <div className="bg-slate-900 rounded-[2.5rem] p-1 h-[280px] border border-slate-800 shadow-2xl relative overflow-hidden">
                                     <MapLoader
                                         center={{ lat: task.assessment.alert.patient.lat || 23.8103, lng: task.assessment.alert.patient.lng || 90.4125 }}
                                         markers={[
                                             { lat: task.assessment.alert.patient.lat || 23.8103, lng: task.assessment.alert.patient.lng || 90.4125, name: task.assessment.alert.patient.name, type: 'PATIENT' },
-                                            { lat: (session?.user as any)?.lat || 23.81, lng: (session?.user as any)?.lng || 90.41, name: 'You', type: 'AMBULANCE' }
+                                            { lat: (session?.user as any)?.lat || 23.81, lng: (session?.user as any)?.lng || 90.41, name: 'You', type: 'AMBULANCE' },
+                                            task.assessment.alert.doctorId ? { lat: (task.assessment.alert.doctor as any)?.lat || 23.82, lng: (task.assessment.alert.doctor as any)?.lng || 90.42, name: 'Medical Center', type: 'DOCTOR' } : null
+                                        ].filter(Boolean)}
+                                        waypoints={[
+                                            { lat: (session?.user as any)?.lat || 23.81, lng: (session?.user as any)?.lng || 90.41 },
+                                            { lat: task.assessment.alert.patient.lat || 23.81, lng: task.assessment.alert.patient.lng || 90.41 },
+                                            { lat: (task.assessment.alert.doctor as any)?.lat || 23.82, lng: (task.assessment.alert.doctor as any)?.lng || 90.42 }
                                         ]}
-                                        routingTo={{ lat: task.assessment.alert.patient.lat, lng: task.assessment.alert.patient.lng }}
                                     />
                                     <div className="absolute bottom-6 right-6 z-10">
                                         <button className="w-14 h-14 bg-indigo-600 rounded-[1.25rem] flex items-center justify-center shadow-2xl shadow-indigo-600/40 active:scale-95 transition-all ring-4 ring-indigo-600/20">

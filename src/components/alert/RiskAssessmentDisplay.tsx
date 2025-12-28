@@ -138,8 +138,8 @@ export default function RiskAssessmentDisplay({
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.5, duration: 0.5 }}
                     className={`card ${assessment.riskLevel === 'HIGH'
-                            ? 'bg-red-50 border-2 border-red-300'
-                            : 'bg-green-50 border-2 border-green-200'
+                        ? 'bg-red-50 border-2 border-red-300'
+                        : 'bg-green-50 border-2 border-green-200'
                         }`}
                 >
                     <h3 className="text-xl font-bold text-gray-800 mb-4">Emergency Response Status</h3>
@@ -169,7 +169,7 @@ export default function RiskAssessmentDisplay({
                         )}
 
                         {/* Ambulance Dispatch */}
-                        {response.ambulanceDispatched && response.ambulanceInfo && (
+                        {response.ambulanceDispatched && response.ambulanceInfo ? (
                             <div className="flex items-start space-x-4 p-4 bg-white rounded-lg shadow-sm border-2 border-red-300">
                                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center text-white pulse-animation">
                                     <Ambulance size={24} />
@@ -183,6 +183,16 @@ export default function RiskAssessmentDisplay({
                                     <p className="text-sm font-semibold text-red-600 mt-1">
                                         📞 {response.ambulanceInfo.driverPhone}
                                     </p>
+                                </div>
+                            </div>
+                        ) : assessment.riskLevel === 'HIGH' && (
+                            <div className="flex items-start space-x-4 p-4 bg-amber-50 rounded-lg border-2 border-amber-200">
+                                <div className="w-12 h-12 rounded-full bg-amber-200 flex items-center justify-center text-amber-700">
+                                    <Ambulance size={24} />
+                                </div>
+                                <div className="flex-1">
+                                    <h4 className="font-bold text-amber-900">Ambulance Not Yet Assigned</h4>
+                                    <p className="text-sm text-amber-800 leading-tight">High risk detected. An ambulance request is recommended for immediate transport.</p>
                                 </div>
                             </div>
                         )}

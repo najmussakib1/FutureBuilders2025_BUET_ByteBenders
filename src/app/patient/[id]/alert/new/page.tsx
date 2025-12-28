@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/prisma';
 import AlertForm from '@/components/alert/AlertForm';
 import Link from 'next/link';
 
@@ -10,13 +10,13 @@ export default async function NewAlertPage({ params }: { params: Promise<{ id: s
     const session = await getServerSession(authOptions);
     if (!session?.user) redirect('/');
 
-    const worker = await prisma.communityWorker.findUnique({
+    const worker = await db.communityWorker.findUnique({
         where: { email: session.user.email! },
     });
 
     if (!worker) redirect('/');
 
-    const patient = await prisma.patient.findUnique({
+    const patient = await db.patient.findUnique({
         where: { id },
     });
 

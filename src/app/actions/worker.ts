@@ -1,6 +1,6 @@
 'use server';
 
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 
 /**
@@ -8,7 +8,7 @@ import { revalidatePath } from 'next/cache';
  */
 export async function updateWorkerLocation(workerId: string, lat: number, lng: number) {
     try {
-        await prisma.communityWorker.update({
+        await db.communityWorker.update({
             where: { id: workerId },
             data: {
                 lat: lat,
@@ -31,7 +31,7 @@ export async function updateWorkerLocation(workerId: string, lat: number, lng: n
  */
 export async function getWorkerData(workerId: string) {
     try {
-        const worker = await prisma.communityWorker.findUnique({
+        const worker = await db.communityWorker.findUnique({
             where: { id: workerId },
             include: {
                 patients: true,

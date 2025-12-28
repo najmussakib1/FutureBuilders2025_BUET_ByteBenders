@@ -36,11 +36,14 @@ export default function DoctorProfilePage() {
     }, [session, status]);
 
     const fetchDoctorData = async () => {
+        console.log('--- DOCTOR PROFILE: FETCHING DATA ---');
         const result = await getDoctorData(session!.user!.id!);
         if (result.success && result.doctor) {
+            console.log('--- DOCTOR PROFILE: DATA RECEIVED ---', result.doctor.name);
             const doc = result.doctor as any;
             setDoctor(doc);
             if (doc.lat && doc.lng) {
+                console.log('--- DOCTOR PROFILE: SETTING INITIAL LOC ---', { lat: doc.lat, lng: doc.lng });
                 setSelectedLoc({ lat: doc.lat, lng: doc.lng });
             }
         }
@@ -48,19 +51,36 @@ export default function DoctorProfilePage() {
     };
 
     const handleLocationSave = async () => {
-        if (!selectedLoc || !session?.user?.id) return;
+        console.log('--- DOCTOR PROFILE: SAVE CLICKED ---');
+        if (!selectedLoc) {
+            console.log('--- DOCTOR PROFILE: ERROR - NO LOCATION SELECTED ---');
+            return;
+        }
+        if (!session?.user?.id) {
+            console.log('--- DOCTOR PROFILE: ERROR - NO SESSION ID ---');
+            return;
+        }
+
+        console.log('--- DOCTOR PROFILE: UPDATING ---', { id: session.user.id, loc: selectedLoc });
         setSaving(true);
         setStatusMsg(null);
 
-        const result = await updateDoctorLocation(session.user.id, selectedLoc.lat, selectedLoc.lng);
-        setSaving(false);
+        try {
+            const result = await updateDoctorLocation(session.user.id, selectedLoc.lat, selectedLoc.lng);
+            console.log('--- DOCTOR PROFILE: UPDATE RESULT ---', result);
+            setSaving(false);
 
-        if (result.success) {
-            setStatusMsg({ type: 'success', text: 'Location updated successfully!' });
-            // Auto-hide after 3 seconds
-            setTimeout(() => setStatusMsg(null), 3000);
-        } else {
-            setStatusMsg({ type: 'error', text: result.error || 'Failed to update location' });
+            if (result.success) {
+                setStatusMsg({ type: 'success', text: 'Location updated successfully!' });
+                // Auto-hide after 3 seconds
+                setTimeout(() => setStatusMsg(null), 3000);
+            } else {
+                setStatusMsg({ type: 'error', text: result.error || 'Failed to update location' });
+            }
+        } catch (err) {
+            console.error('--- DOCTOR PROFILE: FATAL ERROR ---', err);
+            setSaving(false);
+            setStatusMsg({ type: 'error', text: 'An unexpected error occurred' });
         }
     };
 
@@ -155,8 +175,8 @@ export default function DoctorProfilePage() {
                                         initial={{ opacity: 0, height: 0 }}
                                         animate={{ opacity: 1, height: 'auto' }}
                                         className={`mb-6 p-4 rounded-xl text-sm font-medium ${statusMsg.type === 'success'
-                                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                                                : 'bg-rose-50 text-rose-700 border border-rose-100'
+                                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                                            : 'bg-rose-50 text-rose-700 border border-rose-100'
                                             }`}
                                     >
                                         {statusMsg.text}

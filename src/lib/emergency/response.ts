@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/prisma';
 import { RiskLevel } from '@/lib/ai/risk-assessment';
 
 export type ResponseType = 'ADVICE_ONLY' | 'DOCTOR_CONSULT' | 'EMERGENCY_DOCTOR' | 'AMBULANCE_DISPATCH';
@@ -78,7 +78,7 @@ export async function orchestrateEmergencyResponse(
                 ambulanceDispatched = true;
                 ambulanceInfo = ambulance;
                 // Mark ambulance as unavailable
-                await prisma.ambulance.update({
+                await db.ambulance.update({
                     where: { id: ambulance.id },
                     data: { available: false },
                 });
@@ -99,7 +99,7 @@ export async function orchestrateEmergencyResponse(
     }
 
     // Create emergency response record
-    await prisma.emergencyResponse.create({
+    await db.emergencyResponse.create({
         data: {
             assessmentId,
             responseType,
@@ -123,7 +123,7 @@ export async function orchestrateEmergencyResponse(
 }
 
 async function findAvailableDoctor(specialization?: string) {
-    const doctor = await prisma.doctor.findFirst({
+    const doctor = await db.doctor.findFirst({
         where: {
             available: true,
             ...(specialization && { specialization }),
@@ -135,7 +135,7 @@ async function findAvailableDoctor(specialization?: string) {
 
     if (!doctor && specialization) {
         // Fallback to any available doctor if specialist not found
-        return await prisma.doctor.findFirst({
+        return await db.doctor.findFirst({
             where: { available: true },
         });
     }
@@ -144,7 +144,7 @@ async function findAvailableDoctor(specialization?: string) {
 }
 
 async function findAvailableAmbulance() {
-    return await prisma.ambulance.findFirst({
+    return await db.ambulance.findFirst({
         where: { available: true },
         orderBy: {
             createdAt: 'asc',
@@ -153,7 +153,7 @@ async function findAvailableAmbulance() {
 }
 
 export async function completeEmergencyResponse(responseId: string) {
-    const response = await prisma.emergencyResponse.update({
+    const response = await db.emergencyResponse.update({
         where: { id: responseId },
         data: { status: 'COMPLETED' },
         include: {
@@ -164,7 +164,7 @@ export async function completeEmergencyResponse(responseId: string) {
 
     // Release resources
     if (response.ambulanceId) {
-        await prisma.ambulance.update({
+        await db.ambulance.update({
             where: { id: response.ambulanceId },
             data: { available: true },
         });
