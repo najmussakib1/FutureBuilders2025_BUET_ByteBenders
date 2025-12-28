@@ -3,6 +3,7 @@
 import { db } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { Assessment } from '@/lib/ai/types';
+import { generateResolutionSummary } from '@/lib/ai/risk-assessment';
 
 export async function createAlert(data: {
     patientId: string;
@@ -235,7 +236,7 @@ export async function resolveAlert(alertId: string, notes: string, doctorId: str
         if (!alertCheck) return { success: false, error: 'Alert not found' };
 
         // 2. Perform the update
-        await db.medicalAlert.update({
+        const updatedAlert = await db.medicalAlert.update({
             where: { id: alertId },
             data: {
                 status: 'RESOLVED',
@@ -256,11 +257,39 @@ export async function resolveAlert(alertId: string, notes: string, doctorId: str
                         }
                     }
                 }
+            },
+            include: {
+                riskAssessment: true,
+                patient: true
             }
         });
 
+        // 3. Generate AI Summary for Medical Record
+        if (updatedAlert.riskAssessment) {
+            const symptoms = JSON.parse(updatedAlert.symptoms);
+            const aiSummary = await generateResolutionSummary(
+                {
+                    symptoms,
+                    aiAnalysis: updatedAlert.riskAssessment.aiAnalysis
+                },
+                notes
+            );
+
+            // 4. Create permanent Medical Record
+            await db.medicalRecord.create({
+                data: {
+                    patientId: updatedAlert.patientId,
+                    diagnosis: aiSummary.diagnosis,
+                    treatment: aiSummary.treatment,
+                    notes: aiSummary.notes,
+                    symptoms: updatedAlert.symptoms, // Keep original symptoms
+                }
+            });
+        }
+
         revalidatePath(`/alert/${alertId}`);
         revalidatePath(`/doctor/alert/${alertId}`);
+        revalidatePath(`/patient/${updatedAlert.patientId}`);
         revalidatePath('/doctor/dashboard');
         return { success: true };
     } catch (error) {

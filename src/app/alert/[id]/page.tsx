@@ -4,8 +4,9 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { getAlertWithAssessment, getRecommendedDoctors } from '@/app/actions/alert';
 import RiskAssessmentDisplay from '@/components/alert/RiskAssessmentDisplay';
 import WorkerIntervention, { DoctorEscalation } from '@/components/alert/WorkflowSteps';
-import { CheckCircle, UserPlus, FileText } from 'lucide-react';
+import { CheckCircle, UserPlus, FileText, Truck, MapPin, Phone } from 'lucide-react';
 import CaseNotesTimeline from '@/components/alert/CaseNotesTimeline';
+import MapLoader from '@/components/maps/MapLoader';
 
 export default async function AlertPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
@@ -104,6 +105,96 @@ export default async function AlertPage({ params }: { params: Promise<{ id: stri
                                 <h3 className="font-bold text-indigo-900">Forwarded to Dr. {alert.doctor.name}</h3>
                                 <p className="text-sm text-indigo-600">Waiting for doctor's resolution...</p>
                             </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Ambulance Tracking Section */}
+                {alert.riskAssessment?.emergencyResponse?.ambulanceDispatched && alert.riskAssessment.emergencyResponse.ambulance && (
+                    <div className="space-y-6 mt-8">
+                        {/* Interactive Map */}
+                        <div className="glass-panel p-1 h-[400px] border border-slate-200 shadow-xl relative overflow-hidden">
+                            <MapLoader
+                                center={{
+                                    lat: alert.patient.lat || 23.8103,
+                                    lng: alert.patient.lng || 90.4125
+                                }}
+                                markers={[
+                                    {
+                                        lat: alert.patient.lat || 23.8103,
+                                        lng: alert.patient.lng || 90.4125,
+                                        name: alert.patient.name,
+                                        type: 'PATIENT'
+                                    },
+                                    {
+                                        lat: (alert.doctor as any)?.lat || 23.82,
+                                        lng: (alert.doctor as any)?.lng || 90.42,
+                                        name: 'Doctor',
+                                        type: 'DOCTOR'
+                                    },
+                                    {
+                                        lat: (alert.riskAssessment.emergencyResponse.ambulance as any).lat || 23.8,
+                                        lng: (alert.riskAssessment.emergencyResponse.ambulance as any).lng || 90.4,
+                                        name: 'Ambulance',
+                                        type: 'AMBULANCE'
+                                    }
+                                ]}
+                                waypoints={[
+                                    {
+                                        lat: (alert.riskAssessment.emergencyResponse.ambulance as any).lat || 23.8,
+                                        lng: (alert.riskAssessment.emergencyResponse.ambulance as any).lng || 90.4
+                                    },
+                                    {
+                                        lat: alert.patient.lat || 23.81,
+                                        lng: alert.patient.lng || 90.41
+                                    },
+                                    {
+                                        lat: (alert.doctor as any)?.lat || 23.82,
+                                        lng: (alert.doctor as any)?.lng || 90.42
+                                    }
+                                ]}
+                            />
+                        </div>
+
+                        {/* Ambulance Logistics Card */}
+                        <div className="glass-panel p-6 border-l-4 border-red-500 bg-red-50/30">
+                            <div className="flex items-center gap-4 mb-4">
+                                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center text-red-600">
+                                    <Truck className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-slate-800 text-lg">Ambulance En Route</h3>
+                                    <p className="text-sm text-slate-500">Emergency transport dispatched</p>
+                                </div>
+                                <div className="ml-auto">
+                                    <span className="px-3 py-1 bg-emerald-500 text-white text-xs font-bold rounded-full uppercase tracking-wider">
+                                        {alert.riskAssessment.emergencyResponse.status}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <div className="p-4 bg-white rounded-xl border border-slate-100 shadow-sm">
+                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Vehicle Info</p>
+                                    <p className="font-bold text-slate-800">{alert.riskAssessment.emergencyResponse.ambulance.vehicleNumber}</p>
+                                    <p className="text-sm text-slate-500">Driver: {alert.riskAssessment.emergencyResponse.ambulance.driverName}</p>
+                                </div>
+                                <div className="p-4 bg-white rounded-xl border border-slate-100 shadow-sm">
+                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Contact</p>
+                                    <div className="flex items-center gap-2">
+                                        <Phone className="w-4 h-4 text-emerald-600" />
+                                        <p className="font-bold text-slate-800">{alert.riskAssessment.emergencyResponse.ambulance.driverPhone}</p>
+                                    </div>
+                                    <p className="text-sm text-emerald-600 font-medium">Driver Active</p>
+                                </div>
+                            </div>
+
+                            {alert.riskAssessment.emergencyResponse.notes && (
+                                <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Latest Update</p>
+                                    <p className="text-sm text-slate-700 italic">"{alert.riskAssessment.emergencyResponse.notes}"</p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}

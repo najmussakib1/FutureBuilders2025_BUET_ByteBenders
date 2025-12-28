@@ -131,6 +131,17 @@ export default function PatientSearch({ workerId }: { workerId: string }) {
                             </div>
                         </Link>
                     ))}
+
+                    {/* Quick Link to Add New Patient */}
+                    <div className="pt-4 border-t border-slate-100">
+                        <Link
+                            href="/patient/new"
+                            className="flex items-center justify-center gap-2 p-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-600 hover:bg-white hover:border-teal-300 hover:text-teal-600 transition-all font-semibold group"
+                        >
+                            <User className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                            Not finding the person? Register a New Patient
+                        </Link>
+                    </div>
                 </div>
             )}
         </div>

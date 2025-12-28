@@ -229,3 +229,52 @@ function fallbackAssessment(
         estimatedSeverity: severity,
     };
 }
+export async function generateResolutionSummary(
+    alertInfo: { symptoms: string[]; aiAnalysis: string },
+    doctorNotes: string
+): Promise<{ diagnosis: string; treatment: string; notes: string }> {
+    try {
+        const completion = await groq.chat.completions.create({
+            messages: [
+                {
+                    role: 'system',
+                    content: `You are a medical scribe. Your task is to summarize a patient's emergency encounter and the doctor's resolution into a structured medical record entry.
+                    Provide the output in JSON format with "diagnosis", "treatment", and "notes" fields.
+                    Be professional, concise, and accurate.`
+                },
+                {
+                    role: 'user',
+                    content: `ALERT INFORMATION:
+                    - Symptoms: ${alertInfo.symptoms.join(', ')}
+                    - Initial AI Analysis: ${alertInfo.aiAnalysis}
+
+                    DOCTOR'S RESOLUTION NOTES:
+                    ${doctorNotes}
+
+                    Please provide a professional summary.`
+                }
+            ],
+            model: 'llama-3.3-70b-versatile',
+            temperature: 0.3,
+            max_tokens: 500,
+        });
+
+        const response = completion.choices[0]?.message?.content || '';
+        const jsonMatch = response.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error('No JSON found');
+
+        const parsed = JSON.parse(jsonMatch[0]);
+        return {
+            diagnosis: parsed.diagnosis || 'Undiagnosed',
+            treatment: parsed.treatment || 'Standard care provided',
+            notes: parsed.notes || doctorNotes
+        };
+    } catch (error) {
+        console.error('AI Summary Error:', error);
+        return {
+            diagnosis: 'Follow-up required',
+            treatment: 'Emergency resolved',
+            notes: doctorNotes
+        };
+    }
+}
