@@ -2,7 +2,7 @@
 if (typeof window !== 'undefined') {
   throw new Error('prisma must only be imported on the server')
 }
-import { PrismaClient } from '../generated/client'
+import { PrismaClient } from '../generated/client/index.js'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { Pool } from 'pg'
 
