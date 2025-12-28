@@ -22,6 +22,7 @@ model CommunityWorker {
   
   patients      Patient[]
   medicalAlerts MedicalAlert[]
+  caseNotes     CaseNote[]
   
   @@map("community_workers")
 }
@@ -35,6 +36,8 @@ model Patient {
   phone           String?
   address         String
   village         String
+  lat             Float?
+  lng             Float?
   bloodGroup      String?
   allergies       String?   // JSON string of allergies
   chronicDiseases String?   // JSON string of chronic diseases
@@ -87,6 +90,7 @@ model MedicalAlert {
   doctor          Doctor?  @relation(fields: [doctorId], references: [id])
 
   riskAssessment  RiskAssessment?
+  caseNotes       CaseNote[]
   
   @@map("medical_alerts")
 }
@@ -136,14 +140,21 @@ model Doctor {
   name            String
   specialization  String
   phone           String
-  email           String?
+  email           String    @unique
+  password        String    // Hashed password
   hospital        String?
-  available       Boolean  @default(true)
+  area            String?   // For location-based matching
+  lat             Float?
+  lng             Float?
+  experienceYears Int       @default(0)
+  status          String    @default("ACTIVE") // ACTIVE, OFFLINE, BUSY
+  available       Boolean   @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   
   emergencyResponses EmergencyResponse[]
   medicalAlerts      MedicalAlert[]
+  caseNotes          CaseNote[]
   
   @@map("doctors")
 }
@@ -153,7 +164,11 @@ model Ambulance {
   vehicleNumber   String   @unique
   driverName      String
   driverPhone     String
+  email           String   @unique
+  password        String   // For driver login
   location        String   // Current location
+  lat             Float?
+  lng             Float?
   available       Boolean  @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -161,4 +176,22 @@ model Ambulance {
   emergencyResponses EmergencyResponse[]
   
   @@map("ambulances")
+}
+
+model CaseNote {
+  id        String   @id @default(cuid())
+  content   String
+  type      String   // INSTRUCTION, UPDATE
+  createdAt DateTime @default(now())
+
+  alertId   String
+  alert     MedicalAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+
+  workerId  String?
+  worker    CommunityWorker? @relation(fields: [workerId], references: [id])
+
+  doctorId  String?
+  doctor    Doctor?  @relation(fields: [doctorId], references: [id])
+
+  @@map("case_notes")
 }

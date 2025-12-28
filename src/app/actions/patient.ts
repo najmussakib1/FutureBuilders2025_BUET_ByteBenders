@@ -89,6 +89,8 @@ export async function createPatient(data: {
     allergies?: string[];
     chronicDiseases?: string[];
     workerId: string;
+    lat?: number;
+    lng?: number;
 }) {
     try {
         // Generate patient ID
@@ -108,6 +110,8 @@ export async function createPatient(data: {
                 allergies: data.allergies ? JSON.stringify(data.allergies) : null,
                 chronicDiseases: data.chronicDiseases ? JSON.stringify(data.chronicDiseases) : null,
                 workerId: data.workerId,
+                lat: data.lat,
+                lng: data.lng,
             },
         });
 

@@ -21,8 +21,8 @@ export default async function AlertsPage() {
 
     if (!worker) redirect('/');
 
-    const pendingAlerts = worker.medicalAlerts.filter(a => a.status === 'PENDING');
-    const resolvedAlerts = worker.medicalAlerts.filter(a => a.status !== 'PENDING');
+    const activeAlerts = worker.medicalAlerts.filter(a => ['PENDING', 'ESCALATED'].includes(a.status));
+    const resolvedAlerts = worker.medicalAlerts.filter(a => a.status === 'RESOLVED');
 
     return (
         <div className="min-h-screen bg-slate-50 p-4 md:p-8">
@@ -35,14 +35,14 @@ export default async function AlertsPage() {
                 <div className="space-y-6">
                     <h2 className="text-lg font-semibold text-slate-700 flex items-center gap-2">
                         <Clock className="w-5 h-5 text-rose-500" />
-                        Pending Attention ({pendingAlerts.length})
+                        Active Alerts ({activeAlerts.length})
                     </h2>
 
-                    {pendingAlerts.length > 0 ? (
+                    {activeAlerts.length > 0 ? (
                         <div className="grid gap-4">
-                            {pendingAlerts.map(alert => (
+                            {activeAlerts.map(alert => (
                                 <Link key={alert.id} href={`/alert/${alert.id}`}>
-                                    <div className="glass-panel p-6 border-l-4 border-l-rose-500 hover:shadow-lg transition-all group cursor-pointer relative overflow-hidden">
+                                    <div className={`glass-panel p-6 border-l-4 ${alert.status === 'ESCALATED' ? 'border-l-indigo-500' : 'border-l-rose-500'} hover:shadow-lg transition-all group cursor-pointer relative overflow-hidden`}>
                                         <div className="flex justify-between items-start relative z-10">
                                             <div>
                                                 <div className="flex items-center gap-3 mb-2">

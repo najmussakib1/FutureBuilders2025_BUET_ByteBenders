@@ -31,7 +31,17 @@ export default function Home() {
         redirect: false,
       });
       if (result?.ok) {
-        router.push('/dashboard');
+        // Fetch session to determine role
+        const response = await fetch('/api/auth/session');
+        const session = await response.json();
+
+        if (session?.user?.role === 'DOCTOR') {
+          router.push('/doctor/dashboard');
+        } else if (session?.user?.role === 'AMBULANCE') {
+          router.push('/ambulance/dashboard');
+        } else {
+          router.push('/dashboard');
+        }
       } else {
         alert('Access Denied. Check credentials.');
       }
@@ -136,7 +146,7 @@ export default function Home() {
             <input
               required
               type="email"
-              placeholder="Email Address"
+              placeholder="Email (Worker or Doctor)"
               value={formData.email}
               onChange={e => setFormData({ ...formData, email: e.target.value })}
               className="input-minimal pl-12"

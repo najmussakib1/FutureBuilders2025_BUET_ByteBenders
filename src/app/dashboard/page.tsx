@@ -34,7 +34,7 @@ export default async function DashboardPage() {
                 orderBy: { createdAt: 'desc' },
             },
             medicalAlerts: {
-                where: { status: 'PENDING' },
+                where: { status: { in: ['PENDING', 'ESCALATED'] } },
                 include: { patient: true },
                 orderBy: { createdAt: 'desc' },
                 take: 10,
@@ -47,7 +47,7 @@ export default async function DashboardPage() {
     // Parallel data fetching for stats
     const [totalPatients, activeAlerts, resolvedToday] = await Promise.all([
         prisma.patient.count({ where: { workerId: worker.id } }),
-        prisma.medicalAlert.count({ where: { workerId: worker.id, status: 'PENDING' } }),
+        prisma.medicalAlert.count({ where: { workerId: worker.id, status: { in: ['PENDING', 'ESCALATED'] } } }),
         prisma.medicalAlert.count({
             where: {
                 workerId: worker.id,

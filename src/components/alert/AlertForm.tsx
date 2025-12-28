@@ -82,7 +82,7 @@ export default function AlertForm({
 
         setLoading(false);
 
-        if (result.success) {
+        if (result.success && result.alert) {
             router.push(`/alert/${result.alert.id}`);
         } else {
             alert(result.error || 'Failed to create alert');

@@ -2,7 +2,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
-import { RiskAssessment } from '@/lib/ai/types';
+import { Assessment } from '@/lib/ai/types';
 
 export async function createAlert(data: {
     patientId: string;
@@ -25,9 +25,13 @@ export async function createAlert(data: {
             },
         });
 
-        // Trigger AI Assessment (Mock for now, or call Groq)
-        // In a real app, this might be a background job
+        // Trigger AI Assessment
         await generateRiskAssessment(alert.id, data);
+
+        // Auto-assign doctor if severity is high or moderate
+        if (data.severity === 'SEVERE' || data.severity === 'MODERATE') {
+            await autoAssignDoctor(alert.id, data.workerId);
+        }
 
         revalidatePath(`/patient/${data.patientId}`);
         revalidatePath('/dashboard');
@@ -59,9 +63,22 @@ export async function getAlertWithAssessment(alertId: string) {
             where: { id: alertId },
             include: {
                 patient: true,
+                worker: true, // Include creator worker
+                caseNotes: {
+                    include: {
+                        worker: true,
+                        doctor: true
+                    },
+                    orderBy: { createdAt: 'asc' }
+                },
                 riskAssessment: {
                     include: {
-                        emergencyResponse: true,
+                        emergencyResponse: {
+                            include: {
+                                doctor: true,
+                                ambulance: true
+                            }
+                        },
                     },
                 },
                 doctor: true, // Include assigned doctor
@@ -77,13 +94,66 @@ export async function getAlertWithAssessment(alertId: string) {
     }
 }
 
+async function autoAssignDoctor(alertId: string, workerId: string) {
+    try {
+        // 1. Get worker's assigned area
+        const worker = await prisma.communityWorker.findUnique({
+            where: { id: workerId },
+            select: { assignedArea: true }
+        });
+
+        if (!worker) return null;
+
+        // 2. Find best available doctor in the same area
+        let doctor = await prisma.doctor.findFirst({
+            where: {
+                available: true,
+                area: worker.assignedArea,
+                status: 'ACTIVE'
+            },
+            orderBy: { experienceYears: 'desc' }
+        });
+
+        // 3. Fallback: Find any available doctor
+        if (!doctor) {
+            doctor = await prisma.doctor.findFirst({
+                where: {
+                    available: true,
+                    status: 'ACTIVE'
+                },
+                orderBy: { experienceYears: 'desc' }
+            });
+        }
+
+        if (doctor) {
+            await prisma.medicalAlert.update({
+                where: { id: alertId },
+                data: {
+                    doctorId: doctor.id,
+                    status: 'ESCALATED'
+                }
+            });
+            return doctor;
+        }
+        return null;
+    } catch (error) {
+        console.error('Auto-assign error:', error);
+        return null;
+    }
+}
+
 export async function submitPrimaryTreatment(alertId: string, treatment: string) {
     try {
+        const currentAlert = await prisma.medicalAlert.findUnique({
+            where: { id: alertId },
+            select: { status: true }
+        });
+
         const alert = await prisma.medicalAlert.update({
             where: { id: alertId },
             data: {
                 primaryTreatment: treatment,
-                status: 'ASSESSED',
+                status: currentAlert?.status === 'PENDING' ? 'ASSESSED' : currentAlert?.status
             },
         });
         revalidatePath(`/alert/${alertId}`);
@@ -111,13 +181,170 @@ export async function escalateToDoctor(alertId: string, doctorId: string) {
     }
 }
 
-export async function getAvailableDoctors() {
+export async function getRecommendedDoctors(workerId: string) {
     try {
-        const doctors = await prisma.doctor.findMany({
-            where: { available: true }
+        // 1. Get the worker's assigned area
+        const worker = await prisma.communityWorker.findUnique({
+            where: { id: workerId },
+            select: { assignedArea: true }
         });
-        return { success: true, doctors };
+
+        if (!worker) return { success: false, doctors: [] };
+
+        // 2. Find doctors in the same area (Priority 1)
+        const areaDoctors = await prisma.doctor.findMany({
+            where: {
+                available: true,
+                area: worker.assignedArea
+            },
+            orderBy: { experienceYears: 'desc' }
+        });
+
+        // 3. Find other available doctors (Priority 2)
+        // Only if we need more options, or just return them as separate list
+        const otherDoctors = await prisma.doctor.findMany({
+            where: {
+                available: true,
+                area: { not: worker.assignedArea || '' }
+            },
+            orderBy: { experienceYears: 'desc' },
+            take: 5
+        });
+
+        return {
+            success: true,
+            doctors: [...areaDoctors, ...otherDoctors],
+            recommendedCount: areaDoctors.length
+        };
     } catch (error) {
+        console.error('Error fetching doctors:', error);
         return { success: false, doctors: [] };
+    }
+}
+
+export async function resolveAlert(alertId: string, notes: string, doctorId: string) {
+    try {
+        console.log('Resolving alert:', { alertId, doctorId });
+
+        // 1. Get the alert with its risk assessment ID
+        const alertCheck = await prisma.medicalAlert.findUnique({
+            where: { id: alertId },
+            include: { riskAssessment: true }
+        });
+
+        if (!alertCheck) return { success: false, error: 'Alert not found' };
+
+        // 2. Perform the update
+        await prisma.medicalAlert.update({
+            where: { id: alertId },
+            data: {
+                status: 'RESOLVED',
+                riskAssessment: {
+                    update: {
+                        emergencyResponse: {
+                            upsert: {
+                                create: {
+                                    status: 'COMPLETED',
+                                    notes: notes,
+                                    responseType: 'DOCTOR_CONSULT' // Default for resolved cases
+                                },
+                                update: {
+                                    status: 'COMPLETED',
+                                    notes: notes
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        revalidatePath(`/alert/${alertId}`);
+        revalidatePath(`/doctor/alert/${alertId}`);
+        revalidatePath('/doctor/dashboard');
+        return { success: true };
+    } catch (error) {
+        console.error('Resolve error:', error);
+        return { success: false, error: 'Failed to resolve alert' };
+    }
+}
+
+export async function addCaseNote(alertId: string, content: string, type: 'INSTRUCTION' | 'UPDATE', authorId: string) {
+    try {
+        console.log('Backend: addCaseNote', { alertId, type, authorId });
+        const data: any = {
+            alertId,
+            content,
+            type,
+        };
+
+        if (type === 'INSTRUCTION') {
+            data.doctorId = authorId;
+        } else {
+            data.workerId = authorId;
+        }
+
+        const note = await prisma.caseNote.create({
+            data,
+            include: {
+                worker: true,
+                doctor: true
+            }
+        });
+
+        revalidatePath(`/alert/${alertId}`);
+        revalidatePath(`/doctor/alert/${alertId}`);
+        return { success: true, note };
+    } catch (error) {
+        console.error('Add note error:', error);
+        return { success: false, error: 'Failed to add note' };
+    }
+}
+
+export async function getCaseNotes(alertId: string) {
+    try {
+        const notes = await prisma.caseNote.findMany({
+            where: { alertId },
+            include: {
+                worker: true,
+                doctor: true
+            },
+            orderBy: { createdAt: 'asc' }
+        });
+        return { success: true, notes };
+    } catch (error) {
+        console.error('Get notes error:', error);
+        return { success: false, notes: [] };
+    }
+}
+export async function getDoctorAlerts(doctorId: string) {
+    try {
+        const alerts = await prisma.medicalAlert.findMany({
+            where: {
+                doctorId: doctorId,
+                status: 'ESCALATED'
+            },
+            include: {
+                patient: true,
+                worker: true,
+                riskAssessment: {
+                    include: {
+                        emergencyResponse: {
+                            include: {
+                                ambulance: true
+                            }
+                        }
+                    }
+                }
+            },
+            orderBy: {
+                createdAt: 'desc'
+            }
+        });
+
+        return { success: true, alerts };
+    } catch (error) {
+        console.error('Error fetching doctor alerts:', error);
+        return { success: false, alerts: [] };
     }
 }

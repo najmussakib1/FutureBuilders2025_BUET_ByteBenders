@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { createPatient } from '@/app/actions/patient';
 import { useRouter } from 'next/navigation';
 import { User, Phone, MapPin, Droplet, Plus, X } from 'lucide-react';
+import LocationPicker from '@/components/alert/LocationPicker';
 
 export default function NewPatientForm({ workerId }: { workerId: string }) {
     const router = useRouter();
@@ -21,6 +22,7 @@ export default function NewPatientForm({ workerId }: { workerId: string }) {
     const [chronicDiseases, setChronicDiseases] = useState<string[]>([]);
     const [newAllergy, setNewAllergy] = useState('');
     const [newDisease, setNewDisease] = useState('');
+    const [location, setLocation] = useState<{ lat: number, lng: number } | null>(null);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -32,6 +34,8 @@ export default function NewPatientForm({ workerId }: { workerId: string }) {
             allergies: allergies.length > 0 ? allergies : undefined,
             chronicDiseases: chronicDiseases.length > 0 ? chronicDiseases : undefined,
             workerId,
+            lat: location?.lat,
+            lng: location?.lng,
         });
 
         setLoading(false);
@@ -55,6 +59,14 @@ export default function NewPatientForm({ workerId }: { workerId: string }) {
             setChronicDiseases([...chronicDiseases, newDisease.trim()]);
             setNewDisease('');
         }
+    };
+
+    const handlePinLocation = () => {
+        // Mocking user selection on a map
+        // Rural areas are often simplified.
+        const mockLat = 23.8103 + (Math.random() - 0.5) * 0.01;
+        const mockLng = 90.4125 + (Math.random() - 0.5) * 0.01;
+        setLocation({ lat: mockLat, lng: mockLng });
     };
 
     return (
@@ -174,6 +186,14 @@ export default function NewPatientForm({ workerId }: { workerId: string }) {
                             onChange={(e) => setFormData({ ...formData, village: e.target.value })}
                             className="input-field"
                             placeholder="Village name"
+                        />
+                    </div>
+
+                    <div className="md:col-span-2">
+                        <LocationPicker
+                            initialLocation={location}
+                            onLocationSelect={setLocation}
+                            label="Emergency Response Location"
                         />
                     </div>
                 </div>
