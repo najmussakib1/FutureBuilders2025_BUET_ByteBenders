@@ -1,0 +1,164 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model CommunityWorker {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  phone         String
+  password      String
+  village       String
+  assignedArea  String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  patients      Patient[]
+  medicalAlerts MedicalAlert[]
+  
+  @@map("community_workers")
+}
+
+model Patient {
+  id              String    @id @default(cuid())
+  patientId       String    @unique // Custom patient ID (e.g., P-001)
+  name            String
+  age             Int
+  gender          String
+  phone           String?
+  address         String
+  village         String
+  bloodGroup      String?
+  allergies       String?   // JSON string of allergies
+  chronicDiseases String?   // JSON string of chronic diseases
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  workerId        String
+  worker          CommunityWorker @relation(fields: [workerId], references: [id])
+  
+  medicalRecords  MedicalRecord[]
+  medicalAlerts   MedicalAlert[]
+  
+  @@map("patients")
+}
+
+model MedicalRecord {
+  id          String   @id @default(cuid())
+  diagnosis   String
+  symptoms    String   // JSON string of symptoms
+  treatment   String
+  medications String?  // JSON string of medications
+  notes       String?
+  visitDate   DateTime @default(now())
+  createdAt   DateTime @default(now())
+  
+  patientId   String
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  
+  @@map("medical_records")
+}
+
+model MedicalAlert {
+  id              String   @id @default(cuid())
+  symptoms        String   // JSON string of symptoms
+  severity        String   // MILD, MODERATE, SEVERE
+  vitalSigns      String?  // JSON: temperature, bp, pulse, etc.
+  description     String?
+  primaryTreatment String? // Worker's primary steps
+  status          String   @default("PENDING") // PENDING, ASSESSED, ESCALATED, RESOLVED
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  patientId       String
+  patient         Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  
+  workerId        String
+  worker          CommunityWorker @relation(fields: [workerId], references: [id])
+  
+  doctorId        String?
+  doctor          Doctor?  @relation(fields: [doctorId], references: [id])
+
+  riskAssessment  RiskAssessment?
+  
+  @@map("medical_alerts")
+}
+
+model RiskAssessment {
+  id                    String   @id @default(cuid())
+  riskLevel             String   // LOW, MEDIUM, HIGH
+  aiAnalysis            String   // Detailed AI analysis
+  primaryCareAdvice     String   // Immediate care recommendations
+  requiresSpecialist    Boolean  @default(false)
+  specialistType        String?  // Cardiologist, Neurologist, etc.
+  estimatedSeverity     Int      // 1-10 scale
+  createdAt             DateTime @default(now())
+  
+  alertId               String   @unique
+  alert                 MedicalAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  
+  emergencyResponse     EmergencyResponse?
+  
+  @@map("risk_assessments")
+}
+
+model EmergencyResponse {
+  id                  String   @id @default(cuid())
+  responseType        String   // ADVICE_ONLY, DOCTOR_CONSULT, EMERGENCY_DOCTOR, AMBULANCE_DISPATCH
+  doctorAssigned      Boolean  @default(false)
+  doctorId            String?
+  doctor              Doctor?  @relation(fields: [doctorId], references: [id])
+  
+  ambulanceDispatched Boolean  @default(false)
+  ambulanceId         String?
+  ambulance           Ambulance? @relation(fields: [ambulanceId], references: [id])
+  
+  status              String   @default("INITIATED") // INITIATED, IN_PROGRESS, COMPLETED
+  notes               String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  
+  assessmentId        String   @unique
+  assessment          RiskAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  
+  @@map("emergency_responses")
+}
+
+model Doctor {
+  id              String   @id @default(cuid())
+  name            String
+  specialization  String
+  phone           String
+  email           String?
+  hospital        String?
+  available       Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  emergencyResponses EmergencyResponse[]
+  medicalAlerts      MedicalAlert[]
+  
+  @@map("doctors")
+}
+
+model Ambulance {
+  id              String   @id @default(cuid())
+  vehicleNumber   String   @unique
+  driverName      String
+  driverPhone     String
+  location        String   // Current location
+  available       Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  emergencyResponses EmergencyResponse[]
+  
+  @@map("ambulances")
+}
