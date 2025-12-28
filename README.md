@@ -37,6 +37,27 @@ An intelligent, AI-powered healthcare management system designed to empower comm
 - **Fastest routing**: Fastest routing for ambulance support using AI
 - **Dynamic location updates**: Updates on digital location tracker
 
+## Limited Internet / Offline Behavior
+
+- Current behavior
+  - The app requires a reachable database (DATABASE_URL) from the server. When deployed (Vercel) the server components use Prisma to talk to the configured Postgres (e.g., Neon). If the DB or network is unavailable, requests that need DB access will fail or time out; static assets still load.
+
+- Recommended options to handle limited internet
+  1. Local development (offline)
+     - Run a local Postgres (or SQLite) and set DATABASE_URL to that local DB.
+     - Example (Postgres via Docker):
+       - docker run -e POSTGRES_PASSWORD=pass -p 5432:5432 -d postgres
+       - export DATABASE_URL="postgresql://postgres:pass@localhost:5432/dbname"
+       - npx prisma migrate dev && npm run dev
+  2. Use SQLite for fully offline dev
+     - Change prisma datasource to SQLite for local testing, run migrations, and use that DB when DATABASE_URL is not set.
+  3. Graceful degradation
+     - Wrap server DB calls in try/catch and return cached or placeholder data when DB is unreachable; show an "offline" notice in the UI.
+  4. Caching & queues
+     - Add server-side cache (Redis) or client caches (IndexedDB / Service Worker) for read-heavy paths and queue writes for later sync.
+  5. Mocking for tests
+     - Use a mocked Prisma client or an in-memory DB for unit/integration tests when offline.
+
 
 ## 🚀 Getting Started
 
