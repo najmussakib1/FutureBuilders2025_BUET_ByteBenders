@@ -3,20 +3,18 @@ import { redirect } from 'next/navigation';
 import { authOptions } from '../api/auth/[...nextauth]/route';
 import { prisma } from '@/lib/prisma';
 import {
-    LayoutDashboard,
+    Activity,
+    ChevronRight,
+    Search,
+    Bell,
+    Menu,
     Users,
     AlertCircle,
-    Activity,
-    Settings,
-    LogOut,
-    Bell,
-    Search,
-    Menu,
-    ChevronRight,
     Stethoscope
 } from 'lucide-react';
 import Link from 'next/link';
 import PatientSearch from '@/components/patient/PatientSearch';
+import WorkerSidebar from '@/components/layout/WorkerSidebar';
 
 export default async function DashboardPage() {
     const session = await getServerSession(authOptions);
@@ -60,56 +58,11 @@ export default async function DashboardPage() {
     return (
         <div className="flex min-h-screen bg-slate-50">
             {/* Sidebar Navigation */}
-            <aside className="fixed left-0 top-0 h-screen w-72 bg-white/80 backdrop-blur-xl border-r border-slate-200 z-50 hidden lg:flex flex-col">
-                <div className="p-8">
-                    <div className="flex items-center gap-3 mb-10">
-                        <div className="w-10 h-10 bg-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-teal-600/20">
-                            <Activity className="text-white w-6 h-6" />
-                        </div>
-                        <span className="font-bold text-xl text-slate-800 tracking-tight">Health AI</span>
-                    </div>
-
-                    <nav className="space-y-2">
-                        <Link href="/dashboard" className="nav-item active">
-                            <LayoutDashboard className="w-5 h-5 mr-3" />
-                            Dashboard
-                        </Link>
-                        <Link href="/patients" className="nav-item">
-                            <Users className="w-5 h-5 mr-3" />
-                            Patients
-                        </Link>
-                        <Link href="/alerts" className="nav-item">
-                            <AlertCircle className="w-5 h-5 mr-3" />
-                            Alerts
-                            {activeAlerts > 0 && (
-                                <span className="ml-auto bg-rose-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                                    {activeAlerts}
-                                </span>
-                            )}
-                        </Link>
-                        <Link href="/settings" className="nav-item">
-                            <Settings className="w-5 h-5 mr-3" />
-                            Settings
-                        </Link>
-                    </nav>
-                </div>
-
-                <div className="mt-auto p-8 border-t border-slate-100">
-                    <div className="flex items-center gap-3 mb-6">
-                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
-                            <Users className="w-5 h-5" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-slate-900 truncate">{worker.name}</p>
-                            <p className="text-xs text-slate-500 truncate">{worker.assignedArea}</p>
-                        </div>
-                    </div>
-                    <Link href="/api/auth/signout" className="flex items-center text-slate-500 hover:text-rose-600 transition-colors text-sm font-medium">
-                        <LogOut className="w-4 h-4 mr-2" />
-                        Sign Out
-                    </Link>
-                </div>
-            </aside>
+            <WorkerSidebar
+                workerName={worker.name}
+                assignedArea={worker.assignedArea}
+                activeAlerts={activeAlerts}
+            />
 
             {/* Main Content Area */}
             <main className="flex-1 lg:pl-72 relative">
@@ -209,7 +162,7 @@ export default async function DashboardPage() {
                             <div className="glass-panel p-8">
                                 <div className="flex items-center justify-between mb-6">
                                     <h3 className="text-lg font-bold text-slate-800">Patient Database</h3>
-                                    <button className="text-teal-600 text-sm font-semibold hover:underline">View Full Directory</button>
+                                    <Link href="/patients" className="text-teal-600 text-sm font-semibold hover:underline">View Full Directory</Link>
                                 </div>
                                 <PatientSearch workerId={worker.id} />
                             </div>
